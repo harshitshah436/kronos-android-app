@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Kronos</string>
+    <string name="edit_message">See your timecard</string>
+    <string name="button_send">Send</string>
 </resources>
