@@ -4,7 +4,8 @@ import android.content.res.AssetManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.ViewGroup;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import org.json.simple.JSONArray;
@@ -15,13 +16,18 @@ import org.json.simple.parser.ParseException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 
 public class WebCrawlerActivity extends AppCompatActivity {
 
     public String kronos_url, kronos_current_timeperiod_url, username, password;
+    public SimpleDateFormat sdf1 = new SimpleDateFormat("hh:mm a");
+    double today_time = 0;
+    long in_time = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,11 +37,33 @@ public class WebCrawlerActivity extends AppCompatActivity {
         Log.d("WebCrawler", "On Create");
 
         String result = getTimeCard();
-        TextView textView = new TextView(this);
-        textView.setTextSize(12);
+        TextView textView = (TextView) findViewById(R.id.text_view1);
         textView.setText(result);
-        ViewGroup layout = (ViewGroup) findViewById(R.id.activity_web_crawler);
-        layout.addView(textView);
+    }
+
+    public void hoursToCompleteToday(View view) {
+        EditText editText = (EditText) findViewById(R.id.edit_text);
+        String message = editText.getText().toString();
+        Log.d("WebCrawler/numHours", message);
+
+        if (message.isEmpty()) {
+            // Exit application and back to home screen
+            moveTaskToBack(true);
+            android.os.Process.killProcess(android.os.Process.myPid());
+            System.exit(1);
+        }
+
+        double input = Integer.parseInt(message) * 3600;
+
+        if (input > today_time) {
+            message = "\n" + "You should clock out at: " + sdf1.format(new Date((long) (in_time + (input - today_time) * 1000)));
+        } else {
+            message = "\n" + "You have already completed entered number of hours.";
+        }
+
+        TextView textView = (TextView) findViewById(R.id.text_view2);
+        textView.setTextSize(12);
+        textView.setText(message);
     }
 
     private String getTimeCard() {
@@ -46,6 +74,8 @@ public class WebCrawlerActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        kronos_current_timeperiod_url = getKronosCurrentTimeCardURL(kronos_current_timeperiod_url);
 
         ConnectKronos ck = new ConnectKronos();
         String json = null;
@@ -63,7 +93,6 @@ public class WebCrawlerActivity extends AppCompatActivity {
             JSONObject obj = (JSONObject) parser.parse(json);
 
             SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yyyy");
-            SimpleDateFormat sdf1 = new SimpleDateFormat("hh:mm a");
 
             Date start_date = new Date((long) obj.get("start_date"));
             Date end_date = new Date((long) obj.get("end_date"));
@@ -86,18 +115,16 @@ public class WebCrawlerActivity extends AppCompatActivity {
                 sb.append("RIT Holiday hours: ").append(String.format("%6s", formatSeconds((int) total_time))).append("\n");
                 sb.append("\n");
             }
-            sb.append("========================================================\n");
+            sb.append("==================================================\n");
             sb.append("PUNCHES\n");
-            sb.append("========================================================\n");
-            sb.append(String.format("%12s", "Date"));
+            sb.append("==================================================\n");
+            sb.append(String.format("%18s", "Date"));
             sb.append(String.format("%12s", "In Punch"));
             sb.append(String.format("%12s", "Out Punch"));
             sb.append(String.format("%10s", "Shift"));
             sb.append(String.format("%10s", "Total")).append("\n");
 
             boolean shift_over = false, new_shift = false;
-            double today_time = 0;
-            long in_time = 0;
             array = (JSONArray) obj.get("punchlist");
             for (int i = 0; i < array.size(); i++) {
                 JSONObject obj2 = (JSONObject) array.get(i);
@@ -107,7 +134,7 @@ public class WebCrawlerActivity extends AppCompatActivity {
                 in_time = (long) obj2.get("in_datetime");
 
                 if (startreason.equalsIgnoreCase("newShift")) {
-                    sb.append("--------------------------------------------------------\n");
+                    sb.append("---------------------------------------------------------------------------------\n");
                     today_time = 0;
                     new_shift = true;
                 } else {
@@ -136,7 +163,7 @@ public class WebCrawlerActivity extends AppCompatActivity {
                 total_time += duration;
                 sb.append(String.format("%10s", formatSeconds((int) total_time))).append("\n");
             }
-            sb.append("--------------------------------------------------------\n");
+            sb.append("---------------------------------------------------------------------------------\n");
 
             Log.d("WebCrawler", sb.toString());
 
@@ -157,21 +184,6 @@ public class WebCrawlerActivity extends AppCompatActivity {
             }
 
             sb.append("\n");
-
-//            System.out.print("Enter number of hours you want to work today (0 to exit): ");
-//            Scanner in = new Scanner(System.in);
-//            double input = in.nextDouble() * 3600;
-//            if (input > 0) {
-//                if (input > today_time) {
-//                    System.out.println();
-//                    System.out.println("You should clock out at: " + sdf1.format(new Date((long) (in_time + (input - today_time) * 1000))));
-//                } else {
-//                    System.out.println();
-//                    System.err.println("You have already completed entered number of hours.");
-//                }
-//            } else {
-//                System.exit(0);
-//            }
 
             Log.d("WebCrawler", sb.toString());
 
@@ -224,6 +236,36 @@ public class WebCrawlerActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
+    }
+
+    private static String getKronosCurrentTimeCardURL(String kronos_current_timeperiod_url) {
+        String last_day_date = kronos_current_timeperiod_url.substring(kronos_current_timeperiod_url.lastIndexOf("/") + 1);
+
+        kronos_current_timeperiod_url = kronos_current_timeperiod_url.substring(0, kronos_current_timeperiod_url.lastIndexOf("/"));
+        kronos_current_timeperiod_url = kronos_current_timeperiod_url.substring(0, kronos_current_timeperiod_url.lastIndexOf("/"));
+
+        Calendar localCalendar = Calendar.getInstance(TimeZone.getDefault());
+        int CurrentDayOfYear = localCalendar.get(Calendar.DAY_OF_YEAR);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+        try {
+            localCalendar.setTime(sdf.parse(last_day_date));
+        } catch (java.text.ParseException ex) {
+            ex.printStackTrace();
+        }
+        int lastDayOf14DayPayPeriod = localCalendar.get(Calendar.DAY_OF_YEAR);
+        while (lastDayOf14DayPayPeriod < CurrentDayOfYear) {
+            lastDayOf14DayPayPeriod += 14;
+        }
+
+        localCalendar.set(Calendar.DAY_OF_YEAR, lastDayOf14DayPayPeriod - 13);
+        kronos_current_timeperiod_url += "/" + sdf.format(localCalendar.getTime());
+
+        localCalendar.set(Calendar.DAY_OF_YEAR, lastDayOf14DayPayPeriod);
+        kronos_current_timeperiod_url += "/" + sdf.format(localCalendar.getTime());
+
+        return kronos_current_timeperiod_url;
     }
 
 }
