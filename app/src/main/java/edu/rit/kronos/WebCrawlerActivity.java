@@ -115,9 +115,9 @@ public class WebCrawlerActivity extends AppCompatActivity {
                 sb.append("RIT Holiday hours: ").append(String.format("%6s", formatSeconds((int) total_time))).append("\n");
                 sb.append("\n");
             }
-            sb.append("==================================================\n");
+            sb.append("=================================================\n");
             sb.append("PUNCHES\n");
-            sb.append("==================================================\n");
+            sb.append("=================================================\n");
             sb.append(String.format("%18s", "Date"));
             sb.append(String.format("%12s", "In Punch"));
             sb.append(String.format("%12s", "Out Punch"));
@@ -134,7 +134,7 @@ public class WebCrawlerActivity extends AppCompatActivity {
                 in_time = (long) obj2.get("in_datetime");
 
                 if (startreason.equalsIgnoreCase("newShift")) {
-                    sb.append("---------------------------------------------------------------------------------\n");
+                    sb.append("-------------------------------------------------------------------------------------\n");
                     today_time = 0;
                     new_shift = true;
                 } else {
@@ -163,7 +163,7 @@ public class WebCrawlerActivity extends AppCompatActivity {
                 total_time += duration;
                 sb.append(String.format("%10s", formatSeconds((int) total_time))).append("\n");
             }
-            sb.append("---------------------------------------------------------------------------------\n");
+            sb.append("-------------------------------------------------------------------------------------\n");
 
             Log.d("WebCrawler", sb.toString());
 
